@@ -1,11 +1,12 @@
 package com.example.and0701.surfaceviewsample;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
@@ -14,6 +15,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 	public static final int NUM_DROID = 10;
@@ -22,6 +24,13 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	private SurfaceHolder holder = null;
 	private ArrayList<Droid> droids = new ArrayList<>();
 	private Droid selectedDroid = null;
+
+	ColorFilter colorFilter = null;
+
+	public void changeColor(){
+		Random rand = new Random();
+		colorFilter = new LightingColorFilter(Color.rgb(rand.nextInt(255), rand.nextInt(255), rand.nextInt(255)), 1);
+	}
 
 	public MySurfaceView(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -40,14 +49,10 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		int baseSize = width;
-		if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
-			baseSize = height;
-
-		ArrayList<Bitmap> bitmaps = fetchBitmaps(baseSize / NUM_DROID);
+		ArrayList<Bitmap> bitmaps = fetchBitmaps(width / NUM_DROID);
 
 		for (int i = 0; i < NUM_DROID; i++)
-			droids.add(createDroid(baseSize, bitmaps, 0, i * (baseSize / NUM_DROID)));
+			droids.add(createDroid(width, bitmaps, 0, i * (width / NUM_DROID)));
 
 		thread = new Thread(this);
 		thread.start();
@@ -88,18 +93,22 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		while (thread != null) {
 			Canvas canvas = holder.lockCanvas();
 			if (canvas == null) break;
-
 			canvas.drawColor(Color.WHITE);
 
-			for (Droid droid : droids) {
-				droid.move();
+			if (colorFilter != null)
+				paint.setColorFilter(colorFilter);
 
-				if (droid == selectedDroid) {
-					canvas.drawRect(selectedDroid.getRect(), paint);
-				}
-				droid.draw(canvas, paint);
-			}
+			drawDroids(canvas, paint);
 			holder.unlockCanvasAndPost(canvas);
+		}
+	}
+
+	private void drawDroids(Canvas canvas, Paint paint) {
+		for (Droid droid : droids) {
+			droid.move();
+			if (droid == selectedDroid)
+				canvas.drawRect(selectedDroid.getRect(), paint);
+			droid.draw(canvas, paint);
 		}
 	}
 
@@ -111,12 +120,15 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 				return true;
 			}
 		}
+		setNewPosition(event);
+		return true;
+	}
 
+	private void setNewPosition(MotionEvent event) {
 		if (selectedDroid != null) {
 			float newX = event.getX() - selectedDroid.getWidth() / 2;
 			float newY = event.getY() - selectedDroid.getHeight() / 2;
 			selectedDroid.setTargetPosition(newX, newY);
 		}
-		return true;
 	}
 }

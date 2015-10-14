@@ -17,11 +17,13 @@
     <com.example.and0701.surfaceviewsample.MySurfaceView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+        android:id="@+id/mySurfaceView"/>
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="New Button"
-        android:id="@+id/button"/>
+        android:text="Change Color !!!"
+        android:id="@+id/button"
+        android:onClick="buttonClicked"/>
 </LinearLayout>
