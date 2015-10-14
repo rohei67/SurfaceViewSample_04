@@ -6,39 +6,62 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.support.annotation.NonNull;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.util.ArrayList;
+
 public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
+	public static final int NUM_DROID = 3;
+
 	private Thread thread = null;
 	private SurfaceHolder holder = null;
-	private Bitmap bmp;
-	private Droid droid;
+	private ArrayList<Droid> droids;
 
 	public MySurfaceView(Context context) {
 		super(context);
 		getHolder().addCallback(this);
-		bmp = BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher);
 	}
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		this.holder = holder;
-		thread = new Thread(this);
-		thread.start();
 	}
 
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		bmp = Bitmap.createScaledBitmap(bmp, width / 8, width / 8, true);
+		ArrayList<Bitmap> bitmaps = fetchBitmaps(width / 8);
 
-		droid = new Droid();
-		droid.setCurrentPosition(0, 0);
-		droid.setTargetPosition(0, 0);
-		droid.setSize(width / 8, width / 8);
-		droid.setBitmap(bmp);
-		droid.setStepSize(width / 50);
+		droids = new ArrayList<>();
+		for (int i = 0; i < NUM_DROID; i++)
+			droids.add(createDroid(width / 50, bitmaps, 0, i * (width / 8)));
+
+		thread = new Thread(this);
+		thread.start();
+	}
+
+	@NonNull
+	private ArrayList<Bitmap> fetchBitmaps(int size) {
+		Bitmap bmp1 = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.droid_leanleft);
+		Bitmap bmp2 = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.droid_leanright);
+		bmp1 = Bitmap.createScaledBitmap(bmp1, size, size, true);
+		bmp2 = Bitmap.createScaledBitmap(bmp2, size, size, true);
+
+		ArrayList<Bitmap> bitmaps = new ArrayList<>();
+		bitmaps.add(bmp1);
+		bitmaps.add(bmp2);
+		return bitmaps;
+	}
+
+	private Droid createDroid(int velocity, ArrayList<Bitmap> bitmaps, float initX, float initY) {
+		Droid droid = new Droid();
+		droid.setCurrentPosition(initX, initY);
+		droid.setTargetPosition(initX, initY);
+		droid.setVelocity(velocity);
+		droid.setBitmaps(bitmaps);
+		return droid;
 	}
 
 	@Override
@@ -48,23 +71,24 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
 	public void run() {
 		Paint paint = new Paint();
-		paint.setColor(Color.RED);
-		paint.setAntiAlias(true);
-		Canvas canvas;
+
 		while (thread != null) {
-			canvas = holder.lockCanvas();
+			Canvas canvas = holder.lockCanvas();
 			if (canvas == null) break;
 
 			canvas.drawColor(Color.WHITE);
-			droid.move();
-			droid.draw(canvas, paint);
+			for (Droid droid : droids) {
+				droid.move();
+				droid.draw(canvas, paint);
+			}
 			holder.unlockCanvasAndPost(canvas);
 		}
 	}
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		droid.setTargetPosition(event.getX(), event.getY());
+		for (Droid droid : droids)
+			droid.setTargetPosition(event.getX(), event.getY());
 		return true;
 	}
 }
