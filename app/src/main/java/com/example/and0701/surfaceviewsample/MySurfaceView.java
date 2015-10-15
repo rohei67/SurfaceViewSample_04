@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -20,25 +21,34 @@ import java.util.Random;
 public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 	public static final int NUM_DROID = 10;
 
+	// Thread Object
 	private Thread thread = null;
 	private SurfaceHolder holder = null;
+
+	// Game Object
 	private ArrayList<Droid> droids = new ArrayList<>();
 	private Droid selectedDroid = null;
+	private SoundControl soundControl;
+	private Background background;
+	private ColorFilter colorFilter = null;
 
-	ColorFilter colorFilter = null;
-
-	public void changeColor(){
+	// Called in MainActivity
+	public void changeColor() {
 		Random rand = new Random();
 		colorFilter = new LightingColorFilter(Color.rgb(rand.nextInt(255), rand.nextInt(255), rand.nextInt(255)), 1);
 	}
 
 	public MySurfaceView(Context context, AttributeSet attrs) {
 		super(context, attrs);
-		getHolder().addCallback(this);
+		setCallback();
 	}
 
 	public MySurfaceView(Context context) {
 		super(context);
+		setCallback();
+	}
+
+	private void setCallback() {
 		getHolder().addCallback(this);
 	}
 
@@ -47,15 +57,29 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		this.holder = holder;
 	}
 
+	// Game Object Initialize
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		ArrayList<Bitmap> bitmaps = fetchBitmaps(width / NUM_DROID);
-
-		for (int i = 0; i < NUM_DROID; i++)
-			droids.add(createDroid(width, bitmaps, 0, i * (width / NUM_DROID)));
+		initialize(width, height);
 
 		thread = new Thread(this);
 		thread.start();
+	}
+
+	private void initialize(int width, int height) {
+		// Bitmap
+		ArrayList<Bitmap> bitmaps = fetchBitmaps(width / NUM_DROID);
+
+		// Droids
+		for (int i = 0; i < NUM_DROID; i++)
+			droids.add(createDroid(width, bitmaps, 0, i * (width / NUM_DROID)));
+
+		// Background
+		Bitmap bitmapBg = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.bg_jellyfish);
+		background = new Background(bitmapBg, width, height);
+
+		// Sound & Music
+		soundControl = new SoundControl(getContext());
 	}
 
 	@NonNull
@@ -71,6 +95,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		return bitmaps;
 	}
 
+	// Droid size depends on baseSize
 	private Droid createDroid(int baseSize, ArrayList<Bitmap> bitmaps, float initX, float initY) {
 		Droid droid = new Droid();
 		droid.setSize(baseSize / NUM_DROID, baseSize / NUM_DROID);
@@ -84,47 +109,96 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		thread = null;
+		soundControl.release();
 	}
 
+	// Main Routine
 	public void run() {
-		Paint paint = new Paint();
-		paint.setColor(Color.RED);
+		soundControl.playMusic();
+		Paint paint = createPaint(Color.RED, Paint.Style.STROKE);
+		Paint collisionPaint = createPaint(Color.BLUE, Paint.Style.FILL);
 
 		while (thread != null) {
 			Canvas canvas = holder.lockCanvas();
 			if (canvas == null) break;
 			canvas.drawColor(Color.WHITE);
 
-			if (colorFilter != null)
-				paint.setColorFilter(colorFilter);
+			background.scroll();
+			background.draw(canvas);
 
+			setColorFilter(paint);
+			moveDroids();
+			drawCollisionRect(collisionPaint, canvas);
 			drawDroids(canvas, paint);
+
 			holder.unlockCanvasAndPost(canvas);
+		}
+	}
+
+	private void setColorFilter(Paint paint) {
+		if (colorFilter != null)
+			paint.setColorFilter(colorFilter);
+	}
+
+	@NonNull
+	private Paint createPaint(int color, Paint.Style style) {
+		Paint paint = new Paint();
+		paint.setStrokeWidth(5);
+		paint.setColor(color);
+		paint.setStyle(style);
+		return paint;
+	}
+
+	private void drawCollisionRect(Paint paint, Canvas canvas) {
+		for (Droid droid1 : droids) {
+			for (Droid droid2 : droids) {
+				if (droid1 == droid2) continue;
+				RectF r1 = droid1.getRect();
+				RectF r2 = droid2.getRect();
+				if (RectF.intersects(r1, r2)) {
+					canvas.drawRect(r1, paint);
+				}
+			}
 		}
 	}
 
 	private void drawDroids(Canvas canvas, Paint paint) {
 		for (Droid droid : droids) {
-			droid.move();
-			if (droid == selectedDroid)
+			if (droid == selectedDroid) {
 				canvas.drawRect(selectedDroid.getRect(), paint);
+			}
 			droid.draw(canvas, paint);
 		}
 	}
 
+	private void moveDroids() {
+		for (Droid droid : droids) {
+			droid.move();
+		}
+	}
+
+	//------------- Touch Event
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		for (Droid droid : droids) {
-			if (droid.getRect().contains(event.getX(), event.getY())) {
-				selectedDroid = droid;
+			if (checkDroidTapped(event, droid))
 				return true;
-			}
 		}
-		setNewPosition(event);
+		setNewTargetPosition(event);
 		return true;
 	}
 
-	private void setNewPosition(MotionEvent event) {
+	private boolean checkDroidTapped(MotionEvent event, Droid droid) {
+		if (droid.getRect().contains(event.getX(), event.getY())) {
+			if (selectedDroid != droid)
+				soundControl.playSound();
+			selectedDroid = droid;
+			return true;
+		}
+		return false;
+	}
+
+	private void setNewTargetPosition(MotionEvent event) {
 		if (selectedDroid != null) {
 			float newX = event.getX() - selectedDroid.getWidth() / 2;
 			float newY = event.getY() - selectedDroid.getHeight() / 2;

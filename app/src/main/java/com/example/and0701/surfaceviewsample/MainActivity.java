@@ -5,17 +5,17 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
-	MySurfaceView mySurfaceView;
+	MySurfaceView _mySurfaceView;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		mySurfaceView = (MySurfaceView)findViewById(R.id.mySurfaceView);
+		_mySurfaceView = (MySurfaceView)findViewById(R.id.mySurfaceView);
 	}
 
 	public void buttonClicked(View v) {
-		mySurfaceView.changeColor();
+		_mySurfaceView.changeColor();
 	}
 
 }
