@@ -71,8 +71,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		ArrayList<Bitmap> bitmaps = fetchBitmaps(width / NUM_DROID);
 
 		// Droids
-		for (int i = 0; i < NUM_DROID; i++)
-			droids.add(createDroid(width, bitmaps, 0, i * (width / NUM_DROID)));
+		createDroids(width, height, bitmaps);
 
 		// Background
 		Bitmap bitmapBg = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.bg_jellyfish);
@@ -80,6 +79,15 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
 		// Sound & Music
 		soundControl = new SoundControl(getContext());
+	}
+
+	private void createDroids(int width, int height, ArrayList<Bitmap> bitmaps) {
+		for (int i = 0; i < NUM_DROID; i++) {
+			Droid droid = new Droid(width / NUM_DROID, 0, i * (width / NUM_DROID));
+			droid.setBitmaps(bitmaps);
+			droid.setViewSize(width, height);
+			droids.add(droid);
+		}
 	}
 
 	@NonNull
@@ -95,21 +103,12 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		return bitmaps;
 	}
 
-	// Droid size depends on baseSize
-	private Droid createDroid(int baseSize, ArrayList<Bitmap> bitmaps, float initX, float initY) {
-		Droid droid = new Droid();
-		droid.setSize(baseSize / NUM_DROID, baseSize / NUM_DROID);
-		droid.setCurrentPosition(initX, initY);
-		droid.setTargetPosition(initX, initY);
-		droid.setVelocity(baseSize / 50);
-		droid.setBitmaps(bitmaps);
-		return droid;
-	}
-
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		thread = null;
 		soundControl.release();
+		for (Droid droid : droids)
+			droid.finish();
 	}
 
 	// Main Routine
@@ -127,7 +126,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 			background.draw(canvas);
 
 			setColorFilter(paint);
-			moveDroids();
+//			moveDroids();
 			drawCollisionRect(collisionPaint, canvas);
 			drawDroids(canvas, paint);
 
@@ -168,6 +167,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 				canvas.drawRect(selectedDroid.getRect(), paint);
 			}
 			droid.draw(canvas, paint);
+			droid.setAnimationFrame();
 		}
 	}
 
@@ -181,8 +181,9 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		for (Droid droid : droids) {
-			if (checkDroidTapped(event, droid))
+			if (checkDroidTapped(event, droid)) {
 				return true;
+			}
 		}
 		setNewTargetPosition(event);
 		return true;

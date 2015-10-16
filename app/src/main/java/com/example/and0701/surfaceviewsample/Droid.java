@@ -4,11 +4,14 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Random;
 
-public class Droid {
+public class Droid implements Runnable {
 	private int _width, _height;
+	private int _viewWidth, _viewHeight;
 	private float _currentX, _currentY;
 	private float _targetX, _targetY;
 	private float _velocity;
@@ -16,6 +19,45 @@ public class Droid {
 	private RectF _rect = new RectF();
 	private ArrayList<Bitmap> _bitmaps;
 	private int _animCount = 0, _animFrame = 0;
+	Thread _thread = null;
+
+	public Droid(int size, float initX, float initY) {
+		setSize(size , size);
+		setCurrentPosition(initX, initY);
+		setTargetPosition(initX, initY);
+
+		generateVelocity();
+		startThread();
+	}
+
+		public void startThread() {
+		_thread = new Thread(this);
+		_thread.start();
+	}
+
+	@Override
+	public void run() {
+		Log.v("debug", "velocity= " + _velocity);
+		while (_thread != null) {
+			move();
+			setAnimationFrame();
+
+			try {
+				Thread.sleep(1000/60);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void finish(){
+		_thread = null;
+	}
+
+	public void setViewSize(int viewWidth, int viewHeight) {
+		this._viewWidth = viewWidth;
+		this._viewHeight = viewHeight;
+	}
 
 	public int getWidth() {
 		return _width;
@@ -55,14 +97,17 @@ public class Droid {
 		this._targetY = y;
 	}
 
-	public void setVelocity(float v) {
-		this._velocity = v;
+	public void generateVelocity() {
+		Random rand = new Random();
+		this._velocity = rand.nextFloat() * 10 + 5;
 	}
 
 	public void move() {
 		float distance = getDistance(_currentX, _currentY, _targetX, _targetY);
 		if (distance < _velocity) {
-			setCurrentPosition(_targetX, _targetY);
+//			setCurrentPosition(_targetX, _targetY);
+			Random rand = new Random();
+			setTargetPosition(rand.nextInt(_viewWidth-_width), rand.nextInt(_viewHeight-_height));
 		} else {
 			// 斜め移動
 			double angle = getAngle(_currentX, _currentY, _targetX, _targetY);
@@ -71,13 +116,11 @@ public class Droid {
 			_currentX += x;
 			_currentY += y;
 		}
-		_rect.set(_currentX, _currentY, _currentX+_width, _currentY+_height);
-
-		setAnimationFrame();
+		_rect.set(_currentX, _currentY, _currentX + _width, _currentY + _height);
 	}
 
-	private void setAnimationFrame() {
-		if (_animCount++ > 10) {
+	public void setAnimationFrame() {
+		if (_animCount++ > _velocity) {
 			_animCount = 0;
 			_animFrame ^= 1;
 		}

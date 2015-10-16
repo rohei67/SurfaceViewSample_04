@@ -13,7 +13,7 @@ public class Background {
 	}
 
 	public void scroll() {
-		final int SCROLL_SPEED = 30;
+		final int SCROLL_SPEED = 10;
 		cnt += SCROLL_SPEED;
 	}
 
