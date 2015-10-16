@@ -26,7 +26,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	private SurfaceHolder holder = null;
 
 	// Game Object
-	private ArrayList<Droid> droids = new ArrayList<>();
+	private ArrayList<Droid> droids;
 	private Droid selectedDroid = null;
 	private SoundControl soundControl;
 	private Background background;
@@ -54,6 +54,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
+		droids = new ArrayList<>();
 		this.holder = holder;
 	}
 
@@ -109,6 +110,9 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		soundControl.release();
 		for (Droid droid : droids)
 			droid.finish();
+		droids = null;
+		selectedDroid = null;
+
 	}
 
 	// Main Routine

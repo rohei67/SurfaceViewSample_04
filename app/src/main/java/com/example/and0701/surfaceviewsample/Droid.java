@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -14,15 +13,19 @@ public class Droid implements Runnable {
 	private int _viewWidth, _viewHeight;
 	private float _currentX, _currentY;
 	private float _targetX, _targetY;
-	private float _velocity;
+	private float _velocity, _velocityX, _velocityY;
 
 	private RectF _rect = new RectF();
 	private ArrayList<Bitmap> _bitmaps;
 	private int _animCount = 0, _animFrame = 0;
 	Thread _thread = null;
 
+
 	public Droid(int size, float initX, float initY) {
-		setSize(size , size);
+		_velocityX = 0;
+		_velocityY = 0;
+
+		setSize(size, size);
 		setCurrentPosition(initX, initY);
 		setTargetPosition(initX, initY);
 
@@ -30,27 +33,26 @@ public class Droid implements Runnable {
 		startThread();
 	}
 
-		public void startThread() {
+	public void startThread() {
 		_thread = new Thread(this);
 		_thread.start();
 	}
 
 	@Override
 	public void run() {
-		Log.v("debug", "velocity= " + _velocity);
 		while (_thread != null) {
 			move();
 			setAnimationFrame();
 
 			try {
-				Thread.sleep(1000/60);
+				Thread.sleep(1000 / 60);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	public void finish(){
+	public void finish() {
 		_thread = null;
 	}
 
@@ -107,14 +109,24 @@ public class Droid implements Runnable {
 		if (distance < _velocity) {
 //			setCurrentPosition(_targetX, _targetY);
 			Random rand = new Random();
-			setTargetPosition(rand.nextInt(_viewWidth-_width), rand.nextInt(_viewHeight-_height));
+			setTargetPosition(rand.nextInt(_viewWidth - _width), rand.nextInt(_viewHeight - _height));
 		} else {
 			// 斜め移動
 			double angle = getAngle(_currentX, _currentY, _targetX, _targetY);
-			float x = -(float) (_velocity * Math.cos(angle * Math.PI / 180.0));
-			float y = -(float) (_velocity * Math.sin(angle * Math.PI / 180.0));
-			_currentX += x;
-			_currentY += y;
+
+			_velocityX += -(float) Math.cos(angle * Math.PI / 180.0);
+			_velocityY += -(float) Math.sin(angle * Math.PI / 180.0);
+			_currentX += _velocityX;
+			_currentY += _velocityY;
+
+			if (_currentX < 0 || _currentX+_width > _viewWidth) {
+				_currentX -= _velocityX;
+				_velocityX = 0;
+			}
+			if (_currentY < 0 || _currentY+_height > _viewHeight) {
+				_currentY -= _velocityY;
+				_velocityY = 0;
+			}
 		}
 		_rect.set(_currentX, _currentY, _currentX + _width, _currentY + _height);
 	}
