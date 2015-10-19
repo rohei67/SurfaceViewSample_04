@@ -19,7 +19,12 @@ public class Droid implements Runnable {
 	private ArrayList<Bitmap> _bitmaps;
 	private int _animCount = 0, _animFrame = 0;
 	Thread _thread = null;
+	private boolean _isAuto;
 
+
+	public void setIsAuto(boolean isAuto) {
+		this._isAuto = isAuto;
+	}
 
 	public Droid(int size, float initX, float initY) {
 		_velocityX = 0;
@@ -107,32 +112,38 @@ public class Droid implements Runnable {
 	public void move() {
 		float distance = getDistance(_currentX, _currentY, _targetX, _targetY);
 		if (distance < _velocity) {
-//			setCurrentPosition(_targetX, _targetY);
-			Random rand = new Random();
-			setTargetPosition(rand.nextInt(_viewWidth - _width), rand.nextInt(_viewHeight - _height));
+			if (_isAuto) {
+				Random rand = new Random();
+				setTargetPosition(rand.nextInt(_viewWidth - _width), rand.nextInt(_viewHeight - _height));
+			} else {
+				setCurrentPosition(_targetX, _targetY);
+			}
 		} else {
 			// 斜め移動
 			double angle = getAngle(_currentX, _currentY, _targetX, _targetY);
 
-			_velocityX += -(float) Math.cos(angle * Math.PI / 180.0);
-			_velocityY += -(float) Math.sin(angle * Math.PI / 180.0);
+//			_velocityX += -(float) Math.cos(angle * Math.PI / 180.0);
+//			_velocityY += -(float) Math.sin(angle * Math.PI / 180.0);
+			_velocityX = -(float) Math.cos(angle * Math.PI / 180.0) * _velocity;
+			_velocityY = -(float) Math.sin(angle * Math.PI / 180.0) * _velocity;
+//			_velocity = (_velocityX > _velocityY) ? _velocityX : _velocityY;
 			_currentX += _velocityX;
 			_currentY += _velocityY;
-
-			if (_currentX < 0 || _currentX+_width > _viewWidth) {
+/*
+			if (_currentX < 0 || _currentX + _width > _viewWidth) {
 				_currentX -= _velocityX;
 				_velocityX = 0;
 			}
-			if (_currentY < 0 || _currentY+_height > _viewHeight) {
+			if (_currentY < 0 || _currentY + _height > _viewHeight) {
 				_currentY -= _velocityY;
 				_velocityY = 0;
 			}
-		}
+*/		}
 		_rect.set(_currentX, _currentY, _currentX + _width, _currentY + _height);
 	}
 
 	public void setAnimationFrame() {
-		if (_animCount++ > _velocity) {
+		if (_animCount++ > _velocity*2) {
 			_animCount = 0;
 			_animFrame ^= 1;
 		}

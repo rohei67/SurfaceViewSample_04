@@ -14,6 +14,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -184,10 +185,13 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	//------------- Touch Event
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		int i = 1;
 		for (Droid droid : droids) {
 			if (checkDroidTapped(event, droid)) {
+				_listener.onChange(this, i);
 				return true;
 			}
+			i++;
 		}
 		setNewTargetPosition(event);
 		return true;
@@ -209,5 +213,22 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 			float newY = event.getY() - selectedDroid.getHeight() / 2;
 			selectedDroid.setTargetPosition(newX, newY);
 		}
+	}
+
+	public void setAutoMove(boolean isAuto) {
+		for (Droid droid : droids) {
+			droid.setIsAuto(isAuto);
+		}
+	}
+
+	OnDroidChangeListener _listener;
+
+	// Called from Activity
+	public void setOnDroidChangeListener(OnDroidChangeListener onDroidChangeListener) {
+		_listener = onDroidChangeListener;
+	}
+
+	interface OnDroidChangeListener {
+		void onChange(View v, int num);
 	}
 }
