@@ -132,7 +132,7 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 
 			setColorFilter(paint);
 //			moveDroids();
-			drawCollisionRect(collisionPaint, canvas);
+			drawCollisionRect(canvas, collisionPaint);
 			drawDroids(canvas, paint);
 
 			holder.unlockCanvasAndPost(canvas);
@@ -153,33 +153,28 @@ public class MySurfaceView extends SurfaceView implements SurfaceHolder.Callback
 		return paint;
 	}
 
-	private void drawCollisionRect(Paint paint, Canvas canvas) {
+	private void drawCollisionRect(Canvas canvas, Paint paint) {
 		for (Droid droid1 : droids) {
 			for (Droid droid2 : droids) {
 				if (droid1 == droid2) continue;
-				RectF r1 = droid1.getRect();
-				RectF r2 = droid2.getRect();
-				if (RectF.intersects(r1, r2)) {
-					canvas.drawRect(r1, paint);
-				}
+				if (RectF.intersects(droid1.getRect(), droid2.getRect()))
+					canvas.drawRect(droid1.getRect(), paint);
 			}
 		}
 	}
 
 	private void drawDroids(Canvas canvas, Paint paint) {
 		for (Droid droid : droids) {
-			if (droid == selectedDroid) {
+			if (droid == selectedDroid)
 				canvas.drawRect(selectedDroid.getRect(), paint);
-			}
 			droid.draw(canvas, paint);
 			droid.setAnimationFrame();
 		}
 	}
 
 	private void moveDroids() {
-		for (Droid droid : droids) {
+		for (Droid droid : droids)
 			droid.move();
-		}
 	}
 
 	//------------- Touch Event

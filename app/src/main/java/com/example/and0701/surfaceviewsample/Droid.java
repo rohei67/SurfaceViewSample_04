@@ -13,7 +13,8 @@ public class Droid implements Runnable {
 	private int _viewWidth, _viewHeight;
 	private float _currentX, _currentY;
 	private float _targetX, _targetY;
-	private float _velocity, _velocityX, _velocityY;
+	private float _accel = 0.0f;
+	private float _distance = 0;
 
 	private RectF _rect = new RectF();
 	private ArrayList<Bitmap> _bitmaps;
@@ -27,14 +28,9 @@ public class Droid implements Runnable {
 	}
 
 	public Droid(int size, float initX, float initY) {
-		_velocityX = 0;
-		_velocityY = 0;
-
 		setSize(size, size);
 		setCurrentPosition(initX, initY);
 		setTargetPosition(initX, initY);
-
-		generateVelocity();
 		startThread();
 	}
 
@@ -86,8 +82,7 @@ public class Droid implements Runnable {
 	private double getAngle(float x, float y, float x2, float y2) {
 		double xDistance = x2 - x;
 		double yDistance = y2 - y;
-		double result = Math.atan2(yDistance, xDistance) * 180 / Math.PI;
-		return (result + 180);
+		return (Math.atan2(yDistance, xDistance) * 180 / Math.PI ) + 180;
 	}
 
 	private float getDistance(float x, float y, float x2, float y2) {
@@ -102,48 +97,37 @@ public class Droid implements Runnable {
 	public void setTargetPosition(float x, float y) {
 		this._targetX = x;
 		this._targetY = y;
-	}
-
-	public void generateVelocity() {
-		Random rand = new Random();
-		this._velocity = rand.nextFloat() * 10 + 5;
+		_distance = getDistance(_currentX, _currentY, _targetX, _targetY);
 	}
 
 	public void move() {
-		float distance = getDistance(_currentX, _currentY, _targetX, _targetY);
-		if (distance < _velocity) {
+		float currentDistance = getDistance(_currentX, _currentY, _targetX, _targetY);
+
+		if (currentDistance < 10) {
+			_accel = 0.0f;
+			setCurrentPosition(_targetX, _targetY);
+
 			if (_isAuto) {
 				Random rand = new Random();
 				setTargetPosition(rand.nextInt(_viewWidth - _width), rand.nextInt(_viewHeight - _height));
-			} else {
-				setCurrentPosition(_targetX, _targetY);
 			}
 		} else {
-			// 斜め移動
+			// targetに向かって移動
+			if (currentDistance >= _distance / 2.0f)
+				_accel++;
+			else {
+				_accel--;
+				_accel = (_accel < 0)? 1.0f: _accel;
+			}
 			double angle = getAngle(_currentX, _currentY, _targetX, _targetY);
-
-//			_velocityX += -(float) Math.cos(angle * Math.PI / 180.0);
-//			_velocityY += -(float) Math.sin(angle * Math.PI / 180.0);
-			_velocityX = -(float) Math.cos(angle * Math.PI / 180.0) * _velocity;
-			_velocityY = -(float) Math.sin(angle * Math.PI / 180.0) * _velocity;
-//			_velocity = (_velocityX > _velocityY) ? _velocityX : _velocityY;
-			_currentX += _velocityX;
-			_currentY += _velocityY;
-/*
-			if (_currentX < 0 || _currentX + _width > _viewWidth) {
-				_currentX -= _velocityX;
-				_velocityX = 0;
-			}
-			if (_currentY < 0 || _currentY + _height > _viewHeight) {
-				_currentY -= _velocityY;
-				_velocityY = 0;
-			}
-*/		}
+			_currentX += -(float) Math.cos(angle * Math.PI / 180.0) * _accel;
+			_currentY += -(float) Math.sin(angle * Math.PI / 180.0) * _accel;
+		}
 		_rect.set(_currentX, _currentY, _currentX + _width, _currentY + _height);
 	}
 
 	public void setAnimationFrame() {
-		if (_animCount++ > _velocity*2) {
+		if (_animCount++ > 20) {
 			_animCount = 0;
 			_animFrame ^= 1;
 		}
